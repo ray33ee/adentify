@@ -3,7 +3,7 @@ import numpy as np
 import sys
 
 import pytesseract
-
+import os
 
 # Takes an ad image and tries to locate the 'X' button which closes the app.
 # Returns a dictionary containing the original image, processed image and information on the
@@ -53,7 +53,7 @@ def image_to_x_rectangle(original, threshold=210, sizes=[50, 100, 200]):
                 for i in range(len(boxes['char'])):
                     (text, x1, y2, x2, y1) = (
                     boxes['char'][i], boxes['left'][i], boxes['top'][i], boxes['right'][i], boxes['bottom'][i])
-                    if text == "x" or text == "X" or text == "*" or text == "4":
+                    if text == "x" or text == "X" or text == "*":
                         # Convert the coordinates from local (with respect to the section)
                         # to global (with respect to the original image)
                         g_x1, g_y2, g_x2, g_y1 = (width - size + x1, size - y2, width - size + x2, size - y1)
@@ -70,16 +70,20 @@ def image_to_x_rectangle(original, threshold=210, sizes=[50, 100, 200]):
 
                         results["size"] = size
 
+                        results["status"] = "success"
+
+
                         return results
 
             binary.fill(0)
 
+    results["status"] = "fail"
     return results
 
 
 # Convert the results from image_to_x_rectangle into a dictionary that can be converted to and from json format
 def format_results(results, resize_to=500):
-    if results is not None:
+    if results["status"] == "success":
         original = results["original"]
 
         width = original.shape[1]
@@ -126,6 +130,26 @@ def format_results(results, resize_to=500):
 
 def adentify(image, threshold=210, sizes=[50, 100, 200], resize_to=500):
     return format_results(image_to_x_rectangle(image, threshold, sizes), resize_to)
+
+
+def test():
+    for filename in os.listdir("E:\\Software Projects\\Python\\adentify\\ads"):
+        if filename.endswith(".png"):
+            res = format_results(image_to_x_rectangle(cv.imread(os.path.join("E:\\Software Projects\\Python\\adentify\\ads", filename)), sizes=[200]))
+
+            print(filename)
+
+            cv.imshow('cropped', res["resized"])
+            cv.waitKey(0)
+
+
+def debug(path):
+    image = cv.imread(path)
+    res = format_results(image_to_x_rectangle(image, sizes=[200]))
+
+    cv.imshow('cropped', res["cropped"])
+    cv.imshow('resized', res["resized"])
+    cv.imshow('artifacts', res["artifacts"])
 
 
 if __name__ == "__main__":
